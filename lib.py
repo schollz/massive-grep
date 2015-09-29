@@ -2,6 +2,7 @@ import subprocess
 import shlex
 from multiprocessing import Pool
 import os
+import sqlite3
 import json
 from glob import glob
 
@@ -15,46 +16,36 @@ def isInteger(str):
 
 dj = {}
 
+
+# OR should I just use [bzgrep 'word' *bz2 > foo] and then load foo??
 def bzgrep(dat):
 	data = {}
-	p = subprocess.Popen(shlex.split('bzgrep %s %s' % (dat[0],dat[1])), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	p = subprocess.Popen(shlex.split("bzgrep '%s' %s" % (dat[0],dat[1])), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	out, err = p.communicate()
-	data[dat[1]] = out.decode('utf-8')
+	data = out.decode('utf-8')
 	return data
 
-files = [y for x in os.walk('./') for y in glob(os.path.join(x[0], '*.bz2'))]
-dat = []
-for file in files:
-	dat.append(('tiger',file))
-print(dat)
+def searchAll(word):
+	files = [y for x in os.walk('./') for y in glob(os.path.join(x[0], '*.bz2'))]
+	dat = []
+	for file in files:
+		dat.append((word,file))
 
-p=Pool(8)
-print(p.map(bzgrep,dat))
+	p=Pool(8)
+	results  = p.map(bzgrep,dat)
+	datas = []
+	for result in results:
+		for res in result.split('\n'):
+			try:
+				datas.append(json.loads(res))
+			except:
+				pass
+	return datas
 
 
-
-
-'''
-import sqlite3
-import json
-
-
-data = json.load(open('data.json','r'))
-
-conn = sqlite3.connect(':memory:')
-
-c = conn.cursor()
-#c.execute('CREATE TABLE data (body text, author text, score integer, subreddit text, created_utc integer)')
-for dat in data:
-    print "INSERT INTO data VALUES ('%s','%s',%s,'%s',%s)" % (dat['body'],dat['author'],dat['score'],dat['subreddit'],dat['created_utc'])
-    c.execute("INSERT INTO data VALUES ('%s','%s',%s,'%s',%s)" % (dat['body'].replace("'",""),dat['author'],dat['score'],dat['subreddit'],dat['created_utc']))
-
-conn.commit()
-c.execute('SELECT * FROM data WHERE score>?', str(0))
-print c.fetchall()
-'''
-
-data = {'bridge':'3','smile':'some text'}
+results = searchAll('hat')
+#print(results)
+data = results[0]
 
 cols = []
 for key in data:
@@ -63,6 +54,30 @@ for key in data:
 	else:
 		cols.append(key + " TEXT")
 
-cmd = 'CREATE TABLE data (' + ','.join(cols) + ')'
 
-print(cmd)
+conn = sqlite3.connect(':memory:')
+
+c = conn.cursor()
+c.execute('CREATE TABLE data (' + ','.join(cols) + ')')
+for result in results:
+	vals = []
+	for col in result:
+		if isInteger(result[col]):
+			vals.append(result[col])
+		else:
+			if result[col] is None:
+				vals.append("''")
+			else:
+				vals.append("'" + result[col].replace("'","") + "'")
+	c.execute('INSERT INTO data (' + ','.join(result.keys()) + ') VALUES (' + ','.join(vals) + ')')
+
+conn.commit()
+c.execute('SELECT body,ups FROM data WHERE ups>100 order by ups desc limit 10')
+print(c.fetchall())
+
+
+
+
+
+
+
