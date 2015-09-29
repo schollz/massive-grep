@@ -1,10 +1,12 @@
+from multiprocessing import Pool
+from glob import glob
 import subprocess
 import shlex
-from multiprocessing import Pool
 import os
-import sqlite3
 import json
-from glob import glob
+import time
+
+import sqlite3
 
 
 def isInteger(str):
@@ -14,10 +16,6 @@ def isInteger(str):
 	except:
 		return False
 
-dj = {}
-
-
-# OR should I just use [bzgrep 'word' *bz2 > foo] and then load foo??
 def bzgrep(dat):
 	data = {}
 	p = subprocess.Popen(shlex.split("bzgrep '%s' %s" % (dat[0],dat[1])), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -53,10 +51,11 @@ def searchAll(word,processors):
 		return datas
 
 
+start = time.time()
+results = searchAll('hat',4)
+print("Results took " + str(time.time()-start))
 
-print(len(searchAll('hat',1)))
-
-'''
+start = time.time()
 data = results[0]
 
 cols = []
@@ -84,9 +83,10 @@ for result in results:
 	c.execute('INSERT INTO data (' + ','.join(result.keys()) + ') VALUES (' + ','.join(vals) + ')')
 
 conn.commit()
+print("Database building took " + str(time.time()-start))
 c.execute('SELECT body,ups FROM data WHERE ups>100 order by ups desc limit 10')
 print(c.fetchall())
-'''
+
 
 
 
