@@ -4,7 +4,7 @@ from multiprocessing import Pool
 import os
 import json
 from glob import glob
-import uuid
+
 
 def isInteger(str):
 	try:
@@ -20,21 +20,17 @@ def bzgrep(dat):
 	p = subprocess.Popen(shlex.split('bzgrep %s %s' % (dat[0],dat[1])), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	out, err = p.communicate()
 	data[dat[1]] = out.decode('utf-8')
-	with open(dat[2],'w') as f:
-		f.write(json.dumps(data))
+	return data
 
 files = [y for x in os.walk('./') for y in glob(os.path.join(x[0], '*.bz2'))]
 dat = []
 for file in files:
-	dat.append(('tiger',file,str(uuid.uuid4())))
+	dat.append(('tiger',file))
 print(dat)
 
 p=Pool(8)
-p.map(bzgrep,dat)
+print(p.map(bzgrep,dat))
 
-for d in dat:
-	print(json.load(open(d[2],'r')))
-	os.system('rm %s' % d[2])
 
 
 
@@ -68,8 +64,5 @@ for key in data:
 		cols.append(key + " TEXT")
 
 cmd = 'CREATE TABLE data (' + ','.join(cols) + ')'
-
-for key in data:	
-
 
 print(cmd)
