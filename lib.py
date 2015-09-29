@@ -8,7 +8,7 @@ import time
 import uuid
 
 import sqlite3
-
+from unidecode import unidecode
 
 def isInteger(str):
 	try:
@@ -31,7 +31,7 @@ def searchAll(word,processors):
 		results = []
 		tempfile = str(uuid.uuid4())
 		os.system("find . | grep .bz2 | xargs bzgrep '%s' *bz2 > %s" % (word,tempfile))
-		with open('foo','r') as f:
+		with open(tempfile,'r') as f:
 			for line in f:
 				if len(line) > 0:
 					results.append(json.loads(line.split('bz2:')[1]))
@@ -56,13 +56,13 @@ def searchAll(word,processors):
 
 
 start = time.time()
-results = searchAll('hat',1)
+results = searchAll('speed of light',8)
 print("Results took " + str(time.time()-start))
+
 print(len(results))
 
 start = time.time()
-data = results[0]
-
+data = results[-1]
 cols = []
 for key in data:
 	if isInteger(data[key]):
@@ -78,19 +78,24 @@ c.execute('CREATE TABLE data (' + ','.join(cols) + ')')
 for result in results:
 	vals = []
 	for col in result:
-		if isInteger(result[col]):
-			vals.append(result[col])
+                if isInteger(result[col]):
+			vals.append(str(int(result[col])))
 		else:
 			if result[col] is None:
 				vals.append("''")
 			else:
-				vals.append("'" + result[col].replace("'","") + "'")
-	c.execute('INSERT INTO data (' + ','.join(result.keys()) + ') VALUES (' + ','.join(vals) + ')')
+				vals.append("'" + unidecode(result[col]).replace("'","") + "'")
+        try:
+            c.execute('INSERT INTO data (' + ','.join(result.keys()) + ') VALUES (' + ','.join(vals) + ')')
+        except:
+            pass
 
 conn.commit()
 print("Database building took " + str(time.time()-start))
 c.execute('SELECT body,ups FROM data WHERE ups>100 order by ups desc limit 10')
-print(c.fetchall())
+for rows in c.fetchall():
+    print(rows[0])
+    print(rows[1])
 
 
 
