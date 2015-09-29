@@ -5,6 +5,7 @@ import shlex
 import os
 import json
 import time
+import uuid
 
 import sqlite3
 
@@ -26,12 +27,15 @@ def bzgrep(dat):
 
 def searchAll(word,processors):
 	if processors == 1:
+		print ('one processor')
 		results = []
-		os.system("bzgrep '%s' *bz2 > foo" % word)
+		tempfile = str(uuid.uuid4())
+		os.system("find . | grep .bz2 | xargs bzgrep '%s' *bz2 > %s" % (word,tempfile))
 		with open('foo','r') as f:
 			for line in f:
 				if len(line) > 0:
 					results.append(json.loads(line.split('bz2:')[1]))
+		os.system("rm %s" % tempfile)
 		return results
 	else:
 		files = [y for x in os.walk('./') for y in glob(os.path.join(x[0], '*.bz2'))]
@@ -52,8 +56,9 @@ def searchAll(word,processors):
 
 
 start = time.time()
-results = searchAll('hat',4)
+results = searchAll('hat',1)
 print("Results took " + str(time.time()-start))
+print(len(results))
 
 start = time.time()
 data = results[0]
