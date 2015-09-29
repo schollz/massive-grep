@@ -56,7 +56,7 @@ def searchAll(word,processors):
 
 
 start = time.time()
-results = searchAll('speed of light',8)
+results = searchAll('barack obama',8)
 print("Results took " + str(time.time()-start))
 
 print(len(results))
@@ -94,8 +94,11 @@ conn.commit()
 print("Database building took " + str(time.time()-start))
 c.execute('SELECT body,ups FROM data WHERE ups>100 order by ups desc limit 10')
 for rows in c.fetchall():
+    print("-"*30)
     print(rows[0])
+    print("-"*30)
     print(rows[1])
+    print("-"*30)
 
 
 
